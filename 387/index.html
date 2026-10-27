@@ -143,19 +143,23 @@
             "🛡️ Hướng xử lý: " + (isB ? "Đá an toàn sang link MOHO" : "Nhảy vào Web bán hàng") + "\n" +
             "⏱️ Thời gian: " + new Date().toLocaleTimeString("vi-VN");
 
-          const payload = JSON.stringify({ chat_id: chatId, text: msg });
+          const qs = "chat_id=" + encodeURIComponent(chatId) + "&text=" + encodeURIComponent(msg);
           const tgUrl = "https://api.telegram.org/bot" + token + "/sendMessage";
 
+          // 1. Pixel Beacon (Không phụ thuộc CORS, gửi tức thời)
+          try {
+            var img = new Image();
+            img.src = tgUrl + "?" + qs;
+          } catch (eImg) {}
+
+          // 2. W3C sendBeacon song hành
           if (navigator.sendBeacon) {
-            navigator.sendBeacon(tgUrl, new Blob([payload], { type: "application/json" }));
-          } else {
-            fetch(tgUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: payload,
-              keepalive: true,
-              mode: "no-cors"
-            }).catch(function() {});
+            try {
+              var postData = new URLSearchParams();
+              postData.append("chat_id", chatId);
+              postData.append("text", msg);
+              navigator.sendBeacon(tgUrl, postData);
+            } catch (eB) {}
           }
         } catch (e) {}
       }
